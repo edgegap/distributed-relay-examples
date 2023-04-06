@@ -235,7 +235,7 @@ After matchmaking / lobby, Edgegap will assign the relay address & port of a nea
 
 ```cs
 // from matchmaking / lobby
-socket.Connect(relayAddress, relayPort)
+socket.Connect(relayAddress, relayClientPort)
 ```
 
 While UDP sockets are connectionless, calling Connect() allows us to use Send() and Recv() instead of passing the address every time in SendTo() and RecvFrom().
