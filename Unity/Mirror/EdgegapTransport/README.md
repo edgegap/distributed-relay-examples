@@ -1,4 +1,6 @@
-# Integrating the EdgegapTransport Module into a Unity Project with Mirror Networking
+# Unity - Mirror
+
+## Integrating the EdgegapTransport Module into a Unity Project with Mirror Networking
 
 ![Mirror Logo](https://user-images.githubusercontent.com/16416509/119120944-6db26780-ba5f-11eb-9cdd-fc8500207f4d.png)
 
