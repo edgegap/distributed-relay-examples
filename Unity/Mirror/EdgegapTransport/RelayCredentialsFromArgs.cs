@@ -1,5 +1,5 @@
-// parse session_id and user_id from command line args.
-// mac: "open mirror.app --args session_id=123 user_id=456"
+// parse session_authorization_token and user_authorization_token from command line args.
+// mac: "open mirror.app --args session_id=123 user_authorization_token=456"
 using System;
 using UnityEngine;
 
@@ -12,14 +12,14 @@ namespace Edgegap
             String cmd = Environment.CommandLine;
 
             // parse session_id via regex
-            String sessionId = EdgegapTransport.ReParse(cmd, "session_id=(\\d+)", "111111");
-            String userID = EdgegapTransport.ReParse(cmd, "user_id=(\\d+)", "222222");
-            Debug.Log($"Parsed sessionId: {sessionId} user_id: {userID}");
+            String sessionAuthorizationToken = EdgegapTransport.ReParse(cmd, "session_authorization_token=(\\d+)", "111111");
+            String userAuthorizationToken = EdgegapTransport.ReParse(cmd, "user_authorization_token=(\\d+)", "222222");
+            Debug.Log($"Parsed sessionAuthorizationToken: {sessionAuthorizationToken} user_authorization_token: {userAuthorizationToken}");
 
             // configure transport
             EdgegapTransport transport = GetComponent<EdgegapTransport>();
-            transport.sessionId = UInt32.Parse(sessionId);
-            transport.userId = UInt32.Parse(userID);
+            transport.sessionAuthorizationToken = UInt32.Parse(sessionAuthorizationToken);
+            transport.userAuthorizationToken = UInt32.Parse(userAuthorizationToken);
         }
     }
 }

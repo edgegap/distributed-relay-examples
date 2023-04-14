@@ -23,8 +23,8 @@ namespace Edgegap
 
         [Header("Relay")]
         public bool relayGUI = true;
-        public uint userId = 11111111;
-        public uint sessionId = 22222222;
+        public uint userAuthorizationToken = 11111111;
+        public uint sessionAuthorizationToken = 22222222;
 
         // helper
         internal static String ReParse(String cmd, String pattern, String defaultValue)
@@ -85,8 +85,8 @@ namespace Edgegap
         {
             // connect to relay address:port instead of the expected server address
             EdgegapClient client = (EdgegapClient)this.client;
-            client.userId = userId;
-            client.sessionId = sessionId;
+            client.userAuthorizationToken = userAuthorizationToken;
+            client.sessionAuthorizationToken = sessionAuthorizationToken;
             client.state = ConnectionState.Checking; // reset from last time
             client.Connect(relayAddress, relayGameClientPort);
         }
@@ -97,7 +97,7 @@ namespace Edgegap
 
             // connect to relay address:port instead of the expected server address
             EdgegapClient client = (EdgegapClient)this.client;
-            client.Connect(relayAddress, relayGameClientPort, userId, sessionId);
+            client.Connect(relayAddress, relayGameClientPort, userAuthorizationToken, sessionAuthorizationToken);
         }
 
         // server overwrites to use EdgegapServer instead of KcpServer
@@ -105,7 +105,7 @@ namespace Edgegap
         {
             // start the server
             EdgegapServer server = (EdgegapServer)this.server;
-            server.Start(relayAddress, relayGameServerPort, userId, sessionId);
+            server.Start(relayAddress, relayGameServerPort, userAuthorizationToken, sessionAuthorizationToken);
         }
 
         void OnGUIRelay()
@@ -115,13 +115,13 @@ namespace Edgegap
             GUILayout.BeginArea(new Rect(300, 30, 200, 100));
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("SessionId:");
-            sessionId = Convert.ToUInt32(GUILayout.TextField(sessionId.ToString()));
+            GUILayout.Label("sessionAuthorizationToken:");
+            sessionAuthorizationToken = Convert.ToUInt32(GUILayout.TextField(sessionAuthorizationToken.ToString()));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("UserId:");
-            userId = Convert.ToUInt32(GUILayout.TextField(userId.ToString()));
+            GUILayout.Label("userAuthorizationToken:");
+            userAuthorizationToken = Convert.ToUInt32(GUILayout.TextField(userAuthorizationToken.ToString()));
             GUILayout.EndHorizontal();
 
             if (NetworkServer.active)
@@ -145,7 +145,7 @@ namespace Edgegap
         }
 
         // base OnGUI only shows in editor & development builds.
-        // here we always show it because we need the sessionid & userid buttons.
+        // here we always show it because we need the sessionAuthorizationToken & userAuthorizationToken buttons.
         new void OnGUI()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

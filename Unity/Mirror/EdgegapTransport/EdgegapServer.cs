@@ -13,8 +13,8 @@ namespace Edgegap
         readonly byte[] relayReceiveBuffer;
 
         // authentication
-        public uint userId;
-        public uint sessionId;
+        public uint userAuthorizationToken;
+        public uint sessionAuthorizationToken;
         public ConnectionState state = ConnectionState.Disconnected;
 
         // server is an UDP client talking to relay
@@ -42,12 +42,12 @@ namespace Edgegap
         public override bool IsActive() => relayActive;
 
         // custom start function with relay parameters; connects udp client.
-        public void Start(string relayAddress, ushort relayPort, uint userId, uint sessionId)
+        public void Start(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken)
         {
             // reset last state
             state = ConnectionState.Checking;
-            this.userId = userId;
-            this.sessionId = sessionId;
+            this.userAuthorizationToken = userAuthorizationToken;
+            this.sessionAuthorizationToken = sessionAuthorizationToken;
 
             // try resolve host name
             if (!Common.ResolveHostname(relayAddress, out IPAddress[] addresses))
@@ -146,8 +146,8 @@ namespace Edgegap
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
                 // Debug.Log($"EdgegapServer: sending to connId={connectionId}: {data.ToHexString()}");
-                writer.WriteUInt(userId);
-                writer.WriteUInt(sessionId);
+                writer.WriteUInt(userAuthorizationToken);
+                writer.WriteUInt(sessionAuthorizationToken);
                 writer.WriteByte((byte)MessageType.Data);
                 writer.WriteInt(connectionId);
                 writer.WriteBytes(data.Array, data.Offset, data.Count);
@@ -168,8 +168,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userId);
-                writer.WriteUInt(sessionId);
+                writer.WriteUInt(userAuthorizationToken);
+                writer.WriteUInt(sessionAuthorizationToken);
                 writer.WriteByte((byte)MessageType.Ping);
                 ArraySegment<byte> message = writer;
 
