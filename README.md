@@ -2,16 +2,40 @@
 
 ![Edgegap Logo](https://edgegap.com/wp-content/uploads/2020/02/logo-text-dark.svg)
 
-The Edgegap Distributed Relay helps connect player hosted games.
+The Edgegap Distributed Relay helps connect player-hosted games.
 
 The Relay is compatible with all game engines and all netcodes.</br>
-This repository contains detailed manual on how to implement it for your project.</br>
+This repository contains detailed instructions on how to implement it for your project.</br>
 It also contains integrations for popular game engines & netcodes.</br>
 
-Feel free to share implemenations for other engines & netcodes by opening pull requests!
+Feel free to share implementations for other engines & netcodes by opening pull requests!
 If you have trouble integrating the relay manually, please reach out or check one of the default integrations.
 
-Fear not, this is very easy to implement!
+In the following sections, we will explain how you can easily integrate the Edgegap relay into your game.
+
+---
+
+## How to use this guide
+
+The following guide will help you integrate the Edgegap relay into your game. The implementation is in C# for readability and should give you a great starting point for your final implementation. 
+
+If you need more help, you can find concrete examples for specific game engines and netcode combinations within this project. Just keep in mind that the actual method names in these examples may differ slightly from what's presented in this guide. 
+
+### Glossary
+
+Here are a few important terms that will be used throughout this guide and have a significant impact on the netcode quality. 
+
+**Fragmentation**  
+Fragmentation refers to the breaking up of data packets into smaller pieces for transmission over the network. This is important for video game netcode because it helps reduce the latency and improve the overall performance of the game.
+
+**Reliability**  
+Reliability in video game netcode refers to the ability of the network to deliver packets of data in a timely and consistent manner. Reliable netcode ensures that all players are receiving the same information at the same time, which is crucial for a smooth and fair gaming experience.
+
+**Encryption**  
+Encryption is the process of encoding data to prevent unauthorized access or tampering. In video game netcode, encryption is used to protect sensitive player data and prevent cheating.
+
+**Transport**  
+Transport refers to the method used to transfer data packets between different devices on the network. Video game netcode typically uses either TCP (Transmission Control Protocol) or UDP (User Datagram Protocol) for transport, depending on the specific needs of the game.
 
 ---
 
@@ -19,24 +43,26 @@ Fear not, this is very easy to implement!
 
 ### Requirements
 
+**Game engine**  
 Relay works with any game engine and any programming language.
 
-The implementation guide is in C# for readability, but works just as well with C++, Java, Python, Rust, Go, etc.
+**Programming language**  
+While the implementation guide is in C#, the logic is the same for any other programming language such as C++, Java, Python, Rust, Go, etc.
 
-The only requirement is access to low level UDP send/recv.
+**Netcode**  
+The only requirement is access to low-level UDP `send`/`recv`.
 
-For example, some Unity netcodes may use native DLLs for their transports.</br>
-Relay needs to implemented on the socket layer, which may be difficult when using third party native DLLs.</br>
+For example, some Unity netcodes may use native DLLs for their transports. The relay needs to be implemented on the socket layer, which may be difficult when using third-party native DLLs.</br>
 
 ### Overview
 
-Unlike competing relays with large SDKs, Edgegap relay is extremely easy to integrate.</br>
-First, let's start with a high level overview of the necessary components.
+Unlike competing relays with large SDKs, the Edgegap relay is extremely easy to integrate.</br>
+First, let's start with a high-level overview of the necessary components.
 
-1. **Edgegap Login:** a **sessionID** and **userID** are needed in order to redirect game traffic over the relay. After matchmaking / lobby, those ids will be assigned to players from the Edgegap authentication.
-2. **Redirect Traffic**: game clients and game servers no longer communicate with each other. Instead, both talk to the Relay directly. This is very easy to change, essentially all we need to do is connect to the relay and preprend some metadata to our messages.
+1. **Edgegap Login:** a **sessionID** and **userID** are needed to redirect game traffic over the relay. After matchmaking/lobby, those ids will be assigned to players from the Edgegap authentication.
+2. **Redirect Traffic**: game clients and game servers no longer communicate with each other. Instead, both talk to the Relay directly. This is very easy to change, essentially all we need to do is connect to the relay and prepend some metadata to our messages.
 
-The relay protocol is intentionally kept extremely simple, in order to target a wide range of game engines & netcodes.
+The relay protocol is intentionally kept very simple, in order to target a wide range of game engines & netcodes.
 
 ### Relay Protocol
 
@@ -44,25 +70,24 @@ The Relay communicates over unreliable UDP messages.
 
 - There is one UDP port for game servers.
 - There is one UDP port for game clients.
-- Max message size (MTU) is **1200** bytes.
+- The maximum message size (MTU) is **1200** bytes.
 - Relay adds up to 13 bytes of message overhead.
 - Which leaves the max usable payload at 1200-13 = **1187** bytes.
 
-Reliability, Fragmentation, Encryption differ between game engines & netcodes.</br>
-Relay simply sends unreliable UDP messages.</br>
-Each engine & netcode may implement their own logic on top of it.</br>
+Reliability, fragmentation and encryption differ between game engines & netcodes.</br>
+The Edgegap relay only sends UDP messages.</br>
+Each engine & netcode may implement its own logic on top of it.</br>
 
-Note that your game may currently have the game server act as an UDP Server.</br>
-Instead, both game client & game server need to act as UDP Clients.</br>
+Note that your game may currently have the game server act as a UDP Server.</br>
+Instead, both the game client & game server need to act as UDP Clients.</br>
 Which makes everything even easier.</br>
 
-The following is an overview of the complete relay protcol.</br>
-As promised, it's extremely simple.</br>
+The following sections will go into more detail on the relay protocol.
 
 ### Constants
 
 UDP netcode always defines a max message size (MTU). Usually of around 1200-1400 bytes.</br>
-Relay communication needs to prepend some meta data, so we need to define two different MTUs:
+Relay communication needs to prepend some metadata, so we need to define two different MTUs:
 
 ```cs
 // relay prepends up to 13 bytes of meta-data
@@ -82,7 +107,7 @@ Typically your netcode implements fragmentation on top of this, so you can send 
 
 For example, a 10 KB message would be split into multiple MAX_PAYLOAD fragments, each fragment is sent to the relay with some metadata.</br>
 
-Fragmentation, Reliability, Encryption are implemented by the game engine's netcode transport. Some games may implement this themselves. Edgegap relay is transport agnostic, so it works with any game engine and netcode. In other words, it handles low level MTU sized UDP messages, nothing else.
+Fragmentation, reliability, and encryption are implemented by the game engine's netcode transport. Some games may implement this themselves. Edgegap relay is transport agnostic, so it works with any game engine and netcode. In other words, it handles low-level MTU-sized UDP messages, nothing else.
 
 ### Enums
 
@@ -108,7 +133,7 @@ enum State : byte {
 }
 ```
 
-Both game server and game client need to have a state variable:
+Both the game server and game client need to have a state variable:
 
 ```cs
 // will be set by PING messages.
@@ -118,7 +143,7 @@ State state = State.Disconnected;
 
 ### Session Id & User Id
 
-Before relaying game traffic, we need to get the sessionID and userID.</br>
+Before relaying the game traffic, we need to get the sessionID and userID.</br>
 The game server & clients will get this after the match is made / lobby is started.</br>
 
 ```cs
@@ -127,16 +152,16 @@ uint sessionId;
 uint userId;
 ```
 
-The ids will be serialized in **little endian** byte order.
+The ids will be serialized in little-endian byte order.
 
 ---
 
 ## Game Server communication with Relay
 
 Before we start, it's worth understanding that game servers usually implement **UDP Servers**.</br>
-In other words, they can handle multiple udp client connects.</br>
+In other words, they can handle multiple UDP client connects.</br>
 
-When talking to a relay, the game server becomes an **UDP Client**.</br>
+When talking to a relay, the game server becomes a **UDP Client**.</br>
 It only ever talks to the one relay.</br>
 
 First, the game server needs to connect the UDP socket to the relay.</br>
@@ -167,7 +192,7 @@ void SendPing() {
 }
 ```
 
-The game server also sends Data messages. These are the messages that your game currently sends to the game client. Clients are identified by a connectionId. For security reasons, the relay will never expose a game client's IP address.
+The game server also sends Data messages. These are the messages that your game currently sends to the game client. Clients are identified by a **connection ID**. For security reasons, the relay will never expose a game client's IP address.
 
 ```cs
 // messages that the game server sends to the game client with connectionId.
@@ -224,7 +249,7 @@ void ProcessMessage() {
 }
 ```
 
-That's it for the game server. Pretty simple.
+That's it for the game server.
 
 ---
 
@@ -311,4 +336,4 @@ void ProcessMessage() {
 }
 ```
 
-That's it for the game client. Pretty simple as well.
+That's it for the game client.
