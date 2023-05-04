@@ -124,7 +124,7 @@ namespace Edgegap
                                 }
 
                                 connectionId = reader.ReadInt();
-                                segment = reader.ReadBytes(reader.Remaining);
+                                segment = reader.ReadBytesSegment(reader.Remaining);
                                 // Debug.Log($"EdgegapServer: receiving from connId={connectionId}: {segment.ToHexString()}");
                                 return true;
                             }
