@@ -32,7 +32,7 @@ The relay needs to be implemented on the socket layer, which may be difficult wh
 Unlike competing relays with large SDKs, the Edgegap relay is extremely easy to integrate.</br>
 First, let's start with a high-level overview of the necessary components.
 
-1. **Edgegap Login:** a **sessionID** and **userID** are needed in order to redirect game traffic over the relay. After matchmaking/lobby, those ids will be assigned to players from the Edgegap authentication.
+1. **Edgegap Login:** a **sessionID** and **userID** are needed in order to redirect game traffic over the relay. After matchmaking/lobby, those ids will be assigned to players from the Edgegap authentication. From the body of the API request, the "**sessionID**" is the sessions->authorization_token, and the "**userID**" is the session->session_users->authorization_token of the specific user.
 2. **Redirect Traffic**: game clients and game servers no longer communicate with each other. Instead, both talk to the Relay directly. This is very easy to change, essentially all we need to do is connect to the relay and prepend some metadata to our messages.
 
 The relay protocol is intentionally kept extremely simple, in order to target a wide range of game engines & netcodes.
