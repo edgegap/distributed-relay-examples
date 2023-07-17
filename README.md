@@ -32,8 +32,8 @@ The relay needs to be implemented on the socket layer, which may be difficult wh
 Unlike competing relays with large SDKs, the Edgegap relay is extremely easy to integrate.</br>
 First, let's start with a high-level overview of the necessary components.
 
-1. **Edgegap Login:** a **sessionID** and **userID** are needed in order to redirect game traffic over the relay. After matchmaking/lobby, those ids will be assigned to players from the Edgegap authentication. From the body of the API request, the "**sessionID**" is the sessions->authorization_token, and the "**userID**" is the session->session_users->authorization_token of the specific user.
-2. **Redirect Traffic**: game clients and game servers no longer communicate with each other. Instead, both talk to the Relay directly. This is very easy to change, essentially all we need to do is connect to the relay and prepend some metadata to our messages.
+1. **Edgegap Login:** a **sessionAuthorizationToken** and **userAuthorizationToken** are needed in order to redirect game traffic over the relay. After matchmaking / lobby, those ids will be assigned to players from the Edgegap authentication.
+2. **Redirect Traffic**: game clients and game servers no longer communicate with each other. Instead, both talk to the Relay directly. This is very easy to change, essentially all we need to do is connect to the relay and preprend some metadata to our messages.
 
 The relay protocol is intentionally kept extremely simple, in order to target a wide range of game engines & netcodes.
 
@@ -117,14 +117,13 @@ State state = State.Disconnected;
 
 ### Session Id & User Id
 
-Before relaying game traffic, we need to get the sessionID and userID.</br>
+Before relaying game traffic, we need to get the sessionAuthorizationToken and userAuthorizationToken.</br>
 The game server & clients will get this after the match is made / lobby is started.</br>
 
 ```cs
-// from matchmaking/lobby
-uint sessionId;
-uint userId;
-```
+// from matchmaking / lobby
+uint sessionAuthorizationToken;
+uint userAuthorizationToken;
 
 The ids will be serialized in **little endian** byte order.
 
@@ -159,8 +158,8 @@ void SendPing() {
     // binary writer for convenience.
     // use what the language / netcode offer.
     writer = new NetworkWriter();
-    writer.WriteUInt(userId);       // 4 bytes little endian
-    writer.WriteUInt(sessionId);    // 4 bytes little endian
+    writer.WriteUInt(userAuthorizationToken);       // 4 bytes little endian
+    writer.WriteUInt(sessionAuthorizationToken);    // 4 bytes little endian
     writer.WriteByte(MsgType.PING);
     socket.Send(writer.Content());
 }
@@ -179,8 +178,8 @@ void SendData(byte[] message, int connectionId) {
     // binary writer for convenience.
     // use what the language / netcode offer.
     writer = new NetworkWriter();
-    writer.WriteUInt(userId);       // 4 bytes little endian
-    writer.WriteUInt(sessionId);    // 4 bytes little endian
+    writer.WriteUInt(userAuthorizationToken);       // 4 bytes little endian
+    writer.WriteUInt(sessionAuthorizationToken);    // 4 bytes little endian
     writer.WriteByte(MsgType.DATA);
     writer.WriteUInt(connectionId); // 4 bytes little endian
     writer.WriteBytes(bytes);
@@ -250,8 +249,8 @@ void SendPing() {
     // binary writer for convenience.
     // use what the language / netcode offer.
     writer = new NetworkWriter();
-    writer.WriteUInt(userId);       // 4 bytes little endian
-    writer.WriteUInt(sessionId);    // 4 bytes little endian
+    writer.WriteUInt(userAuthorizationToken);       // 4 bytes little endian
+    writer.WriteUInt(sessionAuthorizationToken);    // 4 bytes little endian
     writer.WriteByte(MsgType.PING);
     socket.Send(writer.Content());
 }
@@ -269,8 +268,8 @@ void SendData(byte[] message) {
     // binary writer for convenience.
     // use what the language / netcode offer.
     writer = new NetworkWriter();
-    writer.WriteUInt(userId);       // 4 bytes little endian
-    writer.WriteUInt(sessionId);    // 4 bytes little endian
+    writer.WriteUInt(userAuthorizationToken);       // 4 bytes little endian
+    writer.WriteUInt(sessionAuthorizationToken);    // 4 bytes little endian
     writer.WriteByte(MsgType.DATA);
     writer.WriteBytes(bytes);
     socket.Send(writer.Content());

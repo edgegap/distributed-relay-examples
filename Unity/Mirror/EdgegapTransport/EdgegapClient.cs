@@ -13,8 +13,8 @@ namespace Edgegap
         readonly byte[] relayReceiveBuffer;
 
         // authentication
-        public uint userId;
-        public uint sessionId;
+        public uint userAuthorizationToken;
+        public uint sessionAuthorizationToken;
         public ConnectionState state = ConnectionState.Disconnected;
 
         // ping
@@ -32,12 +32,12 @@ namespace Edgegap
         }
 
         // custom start function with relay parameters; connects udp client.
-        public void Connect(string relayAddress, ushort relayPort, uint userId, uint sessionId)
+        public void Connect(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken)
         {
             // reset last state
             state = ConnectionState.Checking;
-            this.userId = userId;
-            this.sessionId = sessionId;
+            this.userAuthorizationToken = userAuthorizationToken;
+            this.sessionAuthorizationToken = sessionAuthorizationToken;
 
             // reuse base connect
             base.Connect(relayAddress, relayPort);
@@ -104,8 +104,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userId);
-                writer.WriteUInt(sessionId);
+                writer.WriteUInt(userAuthorizationToken);
+                writer.WriteUInt(sessionAuthorizationToken);
                 writer.WriteByte((byte)MessageType.Data);
                 writer.WriteBytes(data.Array, data.Offset, data.Count);
                 base.RawSend(writer);
@@ -116,8 +116,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userId);
-                writer.WriteUInt(sessionId);
+                writer.WriteUInt(userAuthorizationToken);
+                writer.WriteUInt(sessionAuthorizationToken);
                 writer.WriteByte((byte)MessageType.Ping);
                 base.RawSend(writer);
             }
