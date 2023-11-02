@@ -20,7 +20,8 @@ namespace FishNet.Transporting.Edgegap
     public static class EdgegapProtocol
     {
         // MTU: relay adds up to 13 bytes of metadata in the worst case.
-        public const int Overhead = 13;
+        public const int ServerOverhead = 13;
+        public const int ClientOverhead = 9;
 
         // ping interval should be between 100 ms and 1 second.
         // faster ping gives faster authentication, but higher bandwidth.

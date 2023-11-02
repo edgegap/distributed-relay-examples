@@ -38,6 +38,9 @@ namespace FishNet.Transporting.Edgegap.Server
         // authentication
         private uint _userAuthorizationToken;
         private uint _sessionAuthorizationToken;
+        // local server
+        private bool _listenOnLocal;
+        private ushort _localPort;
         /// <summary>
         /// Maximum number of allowed clients.
         /// </summary>
@@ -124,13 +127,14 @@ namespace FishNet.Transporting.Edgegap.Server
             listener.NetworkReceiveEvent += Listener_NetworkReceiveEvent;
             listener.PeerDisconnectedEvent += Listener_PeerDisconnectedEvent;
 
+            // To support using the relay, the ServertLayer is supplied
             _server = new NetManager(listener, _packetLayer);
             _server.MtuOverride = (_mtu + NetConstants.FragmentedHeaderTotalSize);
 
             UpdateTimeout(_timeout);
 
             _localConnectionStates.Enqueue(LocalConnectionState.Starting);
-            _server.Start();
+            _server.Start(_localPort);
 
             relayConnectionState = RelayConnectionState.Checking;
         }
@@ -154,12 +158,19 @@ namespace FishNet.Transporting.Edgegap.Server
                 //If not stopped yet also enqueue stop.
                 if (base.GetConnectionState() != LocalConnectionState.Stopped)
                     _localConnectionStates.Enqueue(LocalConnectionState.Stopped);
+
+                relayConnectionState = RelayConnectionState.Disconnected;
             });
         }
 
         /// <summary>
         /// Gets the address of a remote connection Id.
         /// </summary>
+        /// <remarks>
+        /// If the connectionId refers to a Virtual client communicating through the relay,
+        /// the resulting address will be fictitious. That should be OK, since whatever the reason
+        /// for getting the connection address, the communication should still occur through the current transport.
+        /// </remarks>
         /// <param name="connectionId"></param>
         /// <returns>Returns string.empty if Id is not found.</returns>
         internal string GetConnectionAddress(int connectionId)
@@ -208,7 +219,7 @@ namespace FishNet.Transporting.Edgegap.Server
         /// <summary>
         /// Starts the server.
         /// </summary>
-        internal bool StartConnection(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken, int maximumClients, float pingInterval = EdgegapProtocol.PingInterval)
+        internal bool StartConnection(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken, ushort localPort, int maximumClients, float pingInterval = EdgegapProtocol.PingInterval)
         {
             base.Initialize(relayAddress, relayPort, pingInterval);
 
@@ -223,7 +234,10 @@ namespace FishNet.Transporting.Edgegap.Server
             _sessionAuthorizationToken = sessionAuthorizationToken;
             _maximumClients = maximumClients;
 
-            _relay = NetUtils.MakeEndPoint(relayAddress, relayPort);
+            // local server
+            _localPort = localPort;
+
+            // Set up the relay layer
             _packetLayer = new EdgegapServerLayer(_relay, userAuthorizationToken, sessionAuthorizationToken);
             _packetLayer.OnStateChange += Listener_OnRelayStateChange;
 
@@ -239,17 +253,19 @@ namespace FishNet.Transporting.Edgegap.Server
 
             if (prev == current) return;
 
+            // Mirror changes from relay state to client connection state
             switch (current)
             {
                 case RelayConnectionState.Valid:
                     Debug.Log("Server: Relay state is now Valid");
                     _localConnectionStates.Enqueue(LocalConnectionState.Started);
                     break;
+                // Any other state should cause a disconnect
                 case RelayConnectionState.Invalid:
                 case RelayConnectionState.Error:
                 case RelayConnectionState.SessionTimeout:
                 case RelayConnectionState.Disconnected:
-                    Debug.Log("Server: Bad relay state. Stopping...");
+                    Debug.Log("Server: Bad relay state. " + current + ". Stopping...");
                     StopConnection();
                     break;
             }
@@ -413,6 +429,7 @@ namespace FishNet.Transporting.Edgegap.Server
         /// </summary>
         internal void IterateOutgoing()
         {
+            // IterateOutgoing is called for every tick, so we can use it to send the pings
             base.OnTick(_server);
             DequeueOutgoing();
         }

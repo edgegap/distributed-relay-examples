@@ -1,14 +1,9 @@
-﻿using FishNet.Utility.Performance;
-using LiteNetLib;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using LiteNetLib;
 using FishNet.Transporting.Tugboat;
 using System.Net;
 
 namespace FishNet.Transporting.Edgegap
 {
-
     public abstract class EdgegapCommonSocket : CommonSocket
     {
         private uint _lastPingTick = 0;
@@ -30,7 +25,9 @@ namespace FishNet.Transporting.Edgegap
             {
                 _lastPingTick = InstanceFinder.TimeManager.Tick;
 
-                // This hack is supported by the Relay Client and Server layers to detect outgoing pings
+                // This hack is supported by the Relay Client/Server layers to detect outgoing pings
+                // It's necessary since there's no way to bypass our Client/Server layer code
+                // which would consider any packet a Data packet.
                 manager.SendRaw(new byte[0], 0, 0, _relay);
             }
         }

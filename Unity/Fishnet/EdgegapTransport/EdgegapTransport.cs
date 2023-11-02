@@ -3,6 +3,7 @@ using FishNet.Managing.Timing;
 using FishNet.Managing.Transporting;
 using FishNet.Serializing;
 using FishNet.Transporting.Edgegap.Client;
+using FishNet.Transporting.Tugboat.Client;
 using LiteNetLib;
 using LiteNetLib.Layers;
 using LiteNetLib.Utils;
@@ -56,6 +57,11 @@ namespace FishNet.Transporting.Edgegap
         [Tooltip("Relay server port.")]
         [SerializeField]
         private ushort _relayServerPort;
+        [Tooltip("The port to bind on the local server")]
+        [SerializeField]
+        private ushort _localPort;
+
+
         /// <summary>
         /// Maximum number of players which may be connected at once.
         /// </summary>
@@ -72,6 +78,10 @@ namespace FishNet.Transporting.Edgegap
         [Tooltip("Relay client port")]
         [SerializeField]
         private ushort _relayClientPort;
+        [Tooltip("If true, the client will attempt to connect directly to the localhost server, bypassing the relay.")]
+        [SerializeField]
+        private bool _clientConnectLocal;
+
 
         [Header("Misc")]
         /// <summary>
@@ -85,10 +95,6 @@ namespace FishNet.Transporting.Edgegap
 
         #region Private.
         /// <summary>
-        /// PacketLayer to use with LiteNetLib.
-        /// </summary>
-        private PacketLayerBase _packetLayer;
-        /// <summary>
         /// Server socket and handler.
         /// </summary>
         private Server.EdgegapServerSocket _server = new Server.EdgegapServerSocket();
@@ -96,6 +102,7 @@ namespace FishNet.Transporting.Edgegap
         /// Client socket and handler.
         /// </summary>
         private Client.EdgegapClientSocket _client = new Client.EdgegapClientSocket();
+        private ClientSocket _localClient = new ClientSocket();
 
         #endregion
 
@@ -354,7 +361,9 @@ namespace FishNet.Transporting.Edgegap
             if (server)
                 return StartServer();
             else
-                return StartClient(_relayAddress);
+            {
+                return StartClient();
+            }
         }
 
         /// <summary>
@@ -399,7 +408,7 @@ namespace FishNet.Transporting.Edgegap
         {
             _server.Initialize(this, _unreliableMTU);
             UpdateTimeout();
-            return _server.StartConnection(_relayAddress, _relayServerPort, _userAuthorizationToken, _sessionAuthorizationToken, _maximumClients);
+            return _server.StartConnection(_relayAddress, _relayServerPort, _userAuthorizationToken, _sessionAuthorizationToken, _localPort, _maximumClients);
         }
 
         /// <summary>
@@ -417,10 +426,14 @@ namespace FishNet.Transporting.Edgegap
         /// Starts the client.
         /// </summary>
         /// <param name="address"></param>
-        private bool StartClient(string address)
+        private bool StartClient()
         {
             _client.Initialize(this, _unreliableMTU);
             UpdateTimeout();
+
+            if (_clientConnectLocal)
+                return _client.StartConnection(_localPort);
+            
             return _client.StartConnection(_relayAddress, _relayClientPort, _userAuthorizationToken, _sessionAuthorizationToken);
         }
 

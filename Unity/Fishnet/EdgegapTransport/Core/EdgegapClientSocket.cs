@@ -20,9 +20,21 @@ namespace FishNet.Transporting.Edgegap.Client
 
         #region Private.
         #region Configuration.
-        // authentication
+
+        /// <summary>
+        /// User authorization token for relay usage.
+        /// </summary>
         private uint _userAuthorizationToken;
+
+        /// <summary>
+        /// Session authorization token for relay usage.
+        /// </summary>
         private uint _sessionAuthorizationToken;
+
+        /// <summary>
+        /// Whether this client is a local client. If true, it bypasses the relay and connects directly to loopback.
+        /// </summary>
+        private bool _local = false;
 
         /// <summary>
         /// MTU sizes for each channel.
@@ -91,6 +103,7 @@ namespace FishNet.Transporting.Edgegap.Client
             listener.PeerConnectedEvent += Listener_PeerConnectedEvent;
             listener.PeerDisconnectedEvent += Listener_PeerDisconnectedEvent;
 
+            // To support using the relay, the ClientLayer is supplied
             _client = new NetManager(listener, _packetLayer);
             _client.MtuOverride = (_mtu + NetConstants.FragmentedHeaderTotalSize);
 
@@ -98,6 +111,7 @@ namespace FishNet.Transporting.Edgegap.Client
 
             _localConnectionStates.Enqueue(LocalConnectionState.Starting);
             _client.Start();
+
             _client.Connect(_relay.Address.ToString(), _relay.Port, string.Empty);
         }
 
@@ -142,12 +156,32 @@ namespace FishNet.Transporting.Edgegap.Client
             //Assign properties.
             _userAuthorizationToken = userAuthorizationToken;
             _sessionAuthorizationToken = sessionAuthorizationToken;
-            _relay = NetUtils.MakeEndPoint(relayAddress, relayPort);
 
+            // Set up the relay layer
             _packetLayer = new EdgegapClientLayer(userAuthorizationToken, sessionAuthorizationToken);
             relayConnectionState = RelayConnectionState.Checking;
 
+            // Track changes in the relay state
             _packetLayer.OnStateChange += Listener_OnRelayStateChange;
+            
+            ResetQueues();
+            Task t = Task.Run(() => ThreadedSocket());
+
+            return true;
+        }
+
+        /// <summary>
+        /// Starts the client connection on localhost, pypassing the relay.
+        /// This is used to reduce unecessary traffic through the relay.
+        /// </summary>
+        /// <param name="localPort">The local port to connect to</param>
+        internal bool StartConnection(ushort localPort)
+        {
+            base.Initialize("localhost", localPort, -1);
+            if (base.GetConnectionState() != LocalConnectionState.Stopped)
+                return false;
+
+            SetConnectionState(LocalConnectionState.Starting, false);
 
             ResetQueues();
             Task t = Task.Run(() => ThreadedSocket());
@@ -161,12 +195,14 @@ namespace FishNet.Transporting.Edgegap.Client
 
             if (prev == current) return;
 
+            // Mirror changes from relay state to client connection state
             switch (current)
             {
                 case RelayConnectionState.Valid:
                     Debug.Log("Client: Relay state is now Valid");
                     _localConnectionStates.Enqueue(LocalConnectionState.Started);
                     break;
+                // Any other state should cause a disconnect
                 case RelayConnectionState.Invalid:
                 case RelayConnectionState.Error:
                 case RelayConnectionState.SessionTimeout:
@@ -276,7 +312,8 @@ namespace FishNet.Transporting.Edgegap.Client
         /// </summary>
         internal void IterateOutgoing()
         {
-            base.OnTick(_client);
+            // IterateOutgoing is called for every tick, so we can use it to send the pings
+            if (!_local) base.OnTick(_client);
             DequeueOutgoing();
         }
 
@@ -328,20 +365,7 @@ namespace FishNet.Transporting.Edgegap.Client
             if (base.GetConnectionState() != LocalConnectionState.Started)
                 return;
 
-            //// Write relay header
-            //NetDataWriter writer = new NetDataWriter(true, segment.Count + 9);
-            //writer.Put(_userAuthorizationToken);
-            //writer.Put(_sessionAuthorizationToken);
-            //writer.Put((byte)MessageType.Data);
-            //writer.Put(segment.Array, segment.Offset, segment.Count);
-
-            //ArraySegment<byte> _segment = new ArraySegment<byte>(writer.Data, 0, writer.Length);
             Send(ref _outgoing, channelId, segment, -1, _mtu);
-        }
-
-        public void SendPing()
-        {
-            if (_client != null) _client.SendRaw(new byte[0], 0, 0, _relay);
         }
     }
 }
