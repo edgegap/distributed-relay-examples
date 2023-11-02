@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using UnityEngine;
 using FishNet.Transporting.Tugboat;
 using FishNet.Transporting.Tugboat.Server;
-using System.Net;
 
 namespace FishNet.Transporting.Edgegap.Server
 {
@@ -35,11 +34,17 @@ namespace FishNet.Transporting.Edgegap.Server
 
         #region Private.
         #region Configuration.
-        // authentication
+        /// <summary>
+        /// User authorization token for relay usage.
+        /// </summary>
         private uint _userAuthorizationToken;
+        /// <summary>
+        /// Session authorization token for relay usage.
+        /// </summary>
         private uint _sessionAuthorizationToken;
-        // local server
-        private bool _listenOnLocal;
+        /// <summary>
+        /// The local port to bind
+        /// </summary>
         private ushort _localPort;
         /// <summary>
         /// Maximum number of allowed clients.

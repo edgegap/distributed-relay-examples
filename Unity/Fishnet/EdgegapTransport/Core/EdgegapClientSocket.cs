@@ -2,7 +2,6 @@ using FishNet.Transporting.Tugboat;
 using LiteNetLib;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -30,11 +29,6 @@ namespace FishNet.Transporting.Edgegap.Client
         /// Session authorization token for relay usage.
         /// </summary>
         private uint _sessionAuthorizationToken;
-
-        /// <summary>
-        /// Whether this client is a local client. If true, it bypasses the relay and connects directly to loopback.
-        /// </summary>
-        private bool _local = false;
 
         /// <summary>
         /// MTU sizes for each channel.
@@ -139,7 +133,7 @@ namespace FishNet.Transporting.Edgegap.Client
         }
 
         /// <summary>
-        /// Starts the client connection.
+        /// Starts the client connection through the relay.
         /// </summary>
         /// <param name="address"></param>
         /// <param name="port"></param>
@@ -171,13 +165,14 @@ namespace FishNet.Transporting.Edgegap.Client
         }
 
         /// <summary>
-        /// Starts the client connection on localhost, pypassing the relay.
-        /// This is used to reduce unecessary traffic through the relay.
+        /// Starts the client connection in direct P2P mode, bypassing the relay.
+        /// This can be used to reduce unecessary traffic through the relay.
         /// </summary>
+        /// <param name="address">The address to connect</param>
         /// <param name="localPort">The local port to connect to</param>
-        internal bool StartConnection(ushort localPort)
+        internal bool StartConnection(string address, ushort localPort)
         {
-            base.Initialize("localhost", localPort, -1);
+            base.Initialize(address, localPort, -1);
             if (base.GetConnectionState() != LocalConnectionState.Stopped)
                 return false;
 
@@ -313,7 +308,7 @@ namespace FishNet.Transporting.Edgegap.Client
         internal void IterateOutgoing()
         {
             // IterateOutgoing is called for every tick, so we can use it to send the pings
-            if (!_local) base.OnTick(_client);
+            base.OnTick(_client);
             DequeueOutgoing();
         }
 

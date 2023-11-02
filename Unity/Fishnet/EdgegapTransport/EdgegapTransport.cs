@@ -1,12 +1,6 @@
 using FishNet.Managing;
-using FishNet.Managing.Timing;
 using FishNet.Managing.Transporting;
-using FishNet.Serializing;
-using FishNet.Transporting.Edgegap.Client;
 using FishNet.Transporting.Tugboat.Client;
-using LiteNetLib;
-using LiteNetLib.Layers;
-using LiteNetLib.Utils;
 using System;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -59,7 +53,7 @@ namespace FishNet.Transporting.Edgegap
         private ushort _relayServerPort;
         [Tooltip("The port to bind on the local server")]
         [SerializeField]
-        private ushort _localPort;
+        private ushort _localPort = 7770;
 
 
         /// <summary>
@@ -78,9 +72,9 @@ namespace FishNet.Transporting.Edgegap
         [Tooltip("Relay client port")]
         [SerializeField]
         private ushort _relayClientPort;
-        [Tooltip("If true, the client will attempt to connect directly to the localhost server, bypassing the relay.")]
+        [Tooltip("If set, the client will attempt a direct P2P connection with this address, bypassing the relay.")]
         [SerializeField]
-        private bool _clientConnectLocal;
+        private string _clientAddress;
 
 
         [Header("Misc")]
@@ -350,6 +344,40 @@ namespace FishNet.Transporting.Edgegap
             _sessionAuthorizationToken = sessionAuth;
         }
 
+        /// <summary>
+        /// Sets which local port to use.
+        /// </summary>
+        /// <param name="port"></param>
+        public override void SetPort(ushort port)
+        {
+            _localPort = port;
+        }
+
+        /// <summary>
+        /// Gets which port to use.
+        /// </summary>
+        public override ushort GetPort()
+        {
+            return _localPort;
+        }
+
+        /// <summary>
+        /// Sets which address the client will connect to. 
+        /// This will make the client bypass the relay and connect directly to the address.
+        /// </summary>
+        /// <param name="address"></param>
+        public override void SetClientAddress(string address)
+        {
+            _clientAddress = address;
+        }
+        /// <summary>
+        /// Gets which address the client will connect to.
+        /// </summary>
+        public override string GetClientAddress()
+        {
+            return _clientAddress;
+        }
+
         #endregion
         #region Start and stop.
         /// <summary>
@@ -431,10 +459,21 @@ namespace FishNet.Transporting.Edgegap
             _client.Initialize(this, _unreliableMTU);
             UpdateTimeout();
 
-            if (_clientConnectLocal)
-                return _client.StartConnection(_localPort);
+            if (_clientAddress != String.Empty)
+                return _client.StartConnection(_clientAddress, _localPort);
             
             return _client.StartConnection(_relayAddress, _relayClientPort, _userAuthorizationToken, _sessionAuthorizationToken);
+        }
+
+        /// <summary>
+        /// When enabled, local host mode allows the local client to connect direcly to the local server
+        /// via localhost, thereby reducing traffic sent through the relay.
+        /// This cannot be changed once the client has been started.
+        /// </summary>
+        /// <param name="enable">true to enable, false to disable</param>
+        private void SetLocalHost(bool enable)
+        {
+            _clientAddress = enable ? "localhost" : null;
         }
 
         /// <summary>

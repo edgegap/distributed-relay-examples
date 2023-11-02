@@ -19,6 +19,8 @@ namespace FishNet.Transporting.Edgegap
 
         protected void OnTick(NetManager manager)
         {
+            if (_pingInterval <= 0) return;
+
             // Send pings
             var timePassed = InstanceFinder.TimeManager.TimePassed(_lastPingTick);
             if (manager != null && (timePassed > _pingInterval))
