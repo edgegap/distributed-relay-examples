@@ -1,0 +1,9 @@
+{
+  "name": "com.community.netcode.transport.kcp",
+  "displayName": "KCP Transport for Netcode for GameObjects",
+  "version": "0.0.1",
+  "unity": "2021.3",
+  "description": "KCP Transport for Netcode for GameObjects",
+  "author": "[Mischa, Stephen]",
+  "dependencies": {}
+}
