@@ -7,14 +7,14 @@ using kcp2k;
 
 namespace Edgegap
 {
-    public class EdgegapServer : KcpServer
+    public class EdgegapKcpServer : KcpServer
     {
         // need buffer larger than KcpClient.rawReceiveBuffer to add metadata
         readonly byte[] relayReceiveBuffer;
 
         // authentication
-        public uint userAuthorizationToken;
-        public uint sessionAuthorizationToken;
+        public uint userId;
+        public uint sessionId;
         public ConnectionState state = ConnectionState.Disconnected;
 
         // server is an UDP client talking to relay
@@ -27,7 +27,7 @@ namespace Edgegap
         // custom 'active'. while connected to relay
         bool relayActive;
 
-        public EdgegapServer(
+        public EdgegapKcpServer(
             Action<int> OnConnected,
             Action<int, ArraySegment<byte>, KcpChannel> OnData,
             Action<int> OnDisconnected,
@@ -42,12 +42,12 @@ namespace Edgegap
         public override bool IsActive() => relayActive;
 
         // custom start function with relay parameters; connects udp client.
-        public void Start(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken)
+        public void Start(string relayAddress, ushort relayPort, uint userId, uint sessionId)
         {
             // reset last state
             state = ConnectionState.Checking;
-            this.userAuthorizationToken = userAuthorizationToken;
-            this.sessionAuthorizationToken = sessionAuthorizationToken;
+            this.userId = userId;
+            this.sessionId = sessionId;
 
             // try resolve host name
             if (!Common.ResolveHostname(relayAddress, out IPAddress[] addresses))
@@ -146,8 +146,8 @@ namespace Edgegap
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
                 // Debug.Log($"EdgegapServer: sending to connId={connectionId}: {data.ToHexString()}");
-                writer.WriteUInt(userAuthorizationToken);
-                writer.WriteUInt(sessionAuthorizationToken);
+                writer.WriteUInt(userId);
+                writer.WriteUInt(sessionId);
                 writer.WriteByte((byte)MessageType.Data);
                 writer.WriteInt(connectionId);
                 writer.WriteBytes(data.Array, data.Offset, data.Count);
@@ -168,8 +168,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userAuthorizationToken);
-                writer.WriteUInt(sessionAuthorizationToken);
+                writer.WriteUInt(userId);
+                writer.WriteUInt(sessionId);
                 writer.WriteByte((byte)MessageType.Ping);
                 ArraySegment<byte> message = writer;
 

@@ -11,7 +11,7 @@ using kcp2k;
 namespace Edgegap
 {
     [DisallowMultipleComponent]
-    public class EdgegapTransport : KcpTransport
+    public class EdgegapKcpTransport : KcpTransport
     {
         [Header("Relay")]
         public string relayAddress = "127.0.0.1";
@@ -23,8 +23,8 @@ namespace Edgegap
 
         [Header("Relay")]
         public bool relayGUI = true;
-        public uint userAuthorizationToken = 11111111;
-        public uint sessionAuthorizationToken = 22222222;
+        public uint userId = 11111111;
+        public uint sessionId = 22222222;
 
         // helper
         internal static String ReParse(String cmd, String pattern, String defaultValue)
@@ -50,7 +50,7 @@ namespace Edgegap
             config = new KcpConfig(DualMode, RecvBufferSize, SendBufferSize, MaxPayload, NoDelay, Interval, FastResend, false, SendWindowSize, ReceiveWindowSize, Timeout, MaxRetransmit);
 
             // client (NonAlloc version is not necessary anymore)
-            client = new EdgegapClient(
+            client = new EdgegapKcpClient(
                 () => OnClientConnected.Invoke(),
                 (message, channel) => OnClientDataReceived.Invoke(message, FromKcpChannel(channel)),
                 () => OnClientDisconnected.Invoke(),
@@ -59,7 +59,7 @@ namespace Edgegap
             );
 
             // server
-            server = new EdgegapServer(
+            server = new EdgegapKcpServer(
                 (connectionId) => OnServerConnected.Invoke(connectionId),
                 (connectionId, message, channel) => OnServerDataReceived.Invoke(connectionId, message, FromKcpChannel(channel)),
                 (connectionId) => OnServerDisconnected.Invoke(connectionId),
@@ -84,10 +84,10 @@ namespace Edgegap
         public override void ClientConnect(string address)
         {
             // connect to relay address:port instead of the expected server address
-            EdgegapClient client = (EdgegapClient)this.client;
-            client.userAuthorizationToken = userAuthorizationToken;
-            client.sessionAuthorizationToken = sessionAuthorizationToken;
-            client.state = ConnectionState.Checking; // reset from last time
+            EdgegapKcpClient client = (EdgegapKcpClient)this.client;
+            client.userId = userId;
+            client.sessionId = sessionId;
+            client.connectionState = ConnectionState.Checking; // reset from last time
             client.Connect(relayAddress, relayGameClientPort);
         }
         public override void ClientConnect(Uri uri)
@@ -96,16 +96,16 @@ namespace Edgegap
                 throw new ArgumentException($"Invalid url {uri}, use {Scheme}://host:port instead", nameof(uri));
 
             // connect to relay address:port instead of the expected server address
-            EdgegapClient client = (EdgegapClient)this.client;
-            client.Connect(relayAddress, relayGameClientPort, userAuthorizationToken, sessionAuthorizationToken);
+            EdgegapKcpClient client = (EdgegapKcpClient)this.client;
+            client.Connect(relayAddress, relayGameClientPort, userId, sessionId);
         }
 
         // server overwrites to use EdgegapServer instead of KcpServer
         public override void ServerStart()
         {
             // start the server
-            EdgegapServer server = (EdgegapServer)this.server;
-            server.Start(relayAddress, relayGameServerPort, userAuthorizationToken, sessionAuthorizationToken);
+            EdgegapKcpServer server = (EdgegapKcpServer)this.server;
+            server.Start(relayAddress, relayGameServerPort, userId, sessionId);
         }
 
         void OnGUIRelay()
@@ -115,18 +115,18 @@ namespace Edgegap
             GUILayout.BeginArea(new Rect(300, 30, 200, 100));
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("sessionAuthorizationToken:");
-            sessionAuthorizationToken = Convert.ToUInt32(GUILayout.TextField(sessionAuthorizationToken.ToString()));
+            GUILayout.Label("SessionId:");
+            sessionId = Convert.ToUInt32(GUILayout.TextField(sessionId.ToString()));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("userAuthorizationToken:");
-            userAuthorizationToken = Convert.ToUInt32(GUILayout.TextField(userAuthorizationToken.ToString()));
+            GUILayout.Label("UserId:");
+            userId = Convert.ToUInt32(GUILayout.TextField(userId.ToString()));
             GUILayout.EndHorizontal();
 
             if (NetworkServer.active)
             {
-                EdgegapServer server = (EdgegapServer)this.server;
+                EdgegapKcpServer server = (EdgegapKcpServer)this.server;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("State:");
                 GUILayout.Label(server.state.ToString());
@@ -134,10 +134,10 @@ namespace Edgegap
             }
             else if (NetworkClient.active)
             {
-                EdgegapClient client = (EdgegapClient)this.client;
+                EdgegapKcpClient client = (EdgegapKcpClient)this.client;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("State:");
-                GUILayout.Label(client.state.ToString());
+                GUILayout.Label(client.connectionState.ToString());
                 GUILayout.EndHorizontal();
             }
 
@@ -145,7 +145,8 @@ namespace Edgegap
         }
 
         // base OnGUI only shows in editor & development builds.
-        // here we always show it because we need the sessionAuthorizationToken & userAuthorizationToken buttons.
+        // here we always show it because we need the sessionid & userid buttons.
+#pragma warning disable CS0109
         new void OnGUI()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -154,7 +155,8 @@ namespace Edgegap
             if (relayGUI) OnGUIRelay();
         }
 
-        public override string ToString() => "Edgegap Transport";
+        public override string ToString() => "Edgegap Kcp Transport";
     }
+#pragma warning restore CS0109
 }
 //#endif MIRROR <- commented out because MIRROR isn't defined on first import yet

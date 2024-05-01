@@ -7,20 +7,20 @@ using kcp2k;
 
 namespace Edgegap
 {
-    public class EdgegapClient : KcpClient
+    public class EdgegapKcpClient : KcpClient
     {
         // need buffer larger than KcpClient.rawReceiveBuffer to add metadata
         readonly byte[] relayReceiveBuffer;
 
         // authentication
-        public uint userAuthorizationToken;
-        public uint sessionAuthorizationToken;
-        public ConnectionState state = ConnectionState.Disconnected;
+        public uint userId;
+        public uint sessionId;
+        public ConnectionState connectionState = ConnectionState.Disconnected;
 
         // ping
         double lastPingTime;
 
-        public EdgegapClient(
+        public EdgegapKcpClient(
             Action OnConnected,
             Action<ArraySegment<byte>, KcpChannel> OnData,
             Action OnDisconnected,
@@ -32,12 +32,12 @@ namespace Edgegap
         }
 
         // custom start function with relay parameters; connects udp client.
-        public void Connect(string relayAddress, ushort relayPort, uint userAuthorizationToken, uint sessionAuthorizationToken)
+        public void Connect(string relayAddress, ushort relayPort, uint userId, uint sessionId)
         {
             // reset last state
-            state = ConnectionState.Checking;
-            this.userAuthorizationToken = userAuthorizationToken;
-            this.sessionAuthorizationToken = sessionAuthorizationToken;
+            connectionState = ConnectionState.Checking;
+            this.userId = userId;
+            this.sessionId = sessionId;
 
             // reuse base connect
             base.Connect(relayAddress, relayPort);
@@ -70,11 +70,11 @@ namespace Edgegap
                             {
                                 // parse state
                                 if (reader.Remaining < 1) return false;
-                                ConnectionState last = state;
-                                state = (ConnectionState)reader.ReadByte();
+                                ConnectionState last = connectionState;
+                                connectionState = (ConnectionState)reader.ReadByte();
 
                                 // log state changes for debugging.
-                                if (state != last) Debug.Log($"EdgegapClient: state updated to: {state}");
+                                if (connectionState != last) Debug.Log($"EdgegapClient: state updated to: {connectionState}");
 
                                 // return true indicates Mirror to keep checking
                                 // for further messages.
@@ -94,7 +94,7 @@ namespace Edgegap
             catch (SocketException e)
             {
                 Log.Info($"EdgegapClient: looks like the other end has closed the connection. This is fine: {e}");
-                peer.Disconnect();
+                Disconnect();
             }
 
             return false;
@@ -104,8 +104,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userAuthorizationToken);
-                writer.WriteUInt(sessionAuthorizationToken);
+                writer.WriteUInt(userId);
+                writer.WriteUInt(sessionId);
                 writer.WriteByte((byte)MessageType.Data);
                 writer.WriteBytes(data.Array, data.Offset, data.Count);
                 base.RawSend(writer);
@@ -116,8 +116,8 @@ namespace Edgegap
         {
             using (NetworkWriterPooled writer = NetworkWriterPool.Get())
             {
-                writer.WriteUInt(userAuthorizationToken);
-                writer.WriteUInt(sessionAuthorizationToken);
+                writer.WriteUInt(userId);
+                writer.WriteUInt(sessionId);
                 writer.WriteByte((byte)MessageType.Ping);
                 base.RawSend(writer);
             }
